@@ -17,7 +17,6 @@ class AssetPayload(BaseModel):
 
     sheurl: str = Field(min_length=1)
     asset_name: str = Field(min_length=1)
-    asset_url: str = Field(min_length=1)
 
     @model_validator(mode="after")
     def validate_document(self) -> Self:
