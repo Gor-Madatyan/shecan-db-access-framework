@@ -1,13 +1,17 @@
 [project]
 name = "shecan-db-access-framework"
 version = "0.1.0"
-description = "Add your description here"
+description = "FastAPI service scaffold for MongoDB database access"
 readme = "README.md"
 authors = [
     { name = "Gor Madatyan", email = "gor-madatyan@proton.me" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "fastapi>=0.115,<1",
+    "pymongo>=4.13,<5",
+    "uvicorn>=0.34,<1",
+]
 
 [project.scripts]
 shecan-db-access-framework = "shecan_db_access_framework:main"

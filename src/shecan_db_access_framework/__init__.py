@@ -1,2 +1,4 @@
 def main() -> None:
-    print("Hello from shecan-db-access-framework!")
+    import uvicorn
+
+    uvicorn.run("shecan_db_access_framework.app:app")
