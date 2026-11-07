@@ -55,14 +55,19 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(await health(), {"status": "ok"})
             close.assert_called_once()
         self.assertEqual(app.state.dbs, {})
-        self.assertEqual(self.indexes.call_count, 2)
+        self.assertEqual(self.indexes.call_count, 4)
         self.assertEqual(
-            {call.args[0].database.name for call in self.indexes.call_args_list},
-            {"example_db", "other_db"},
+            {
+                (call.args[0].database.name, call.args[0].name, call.args[1:])
+                for call in self.indexes.call_args_list
+            },
+            {
+                (database, collection, (field,))
+                for database in ("example_db", "other_db")
+                for collection, field in (("assets", "asset_name"), ("products", "product_name"))
+            },
         )
         for call in self.indexes.call_args_list:
-            self.assertEqual(call.args[0].name, "assets")
-            self.assertEqual(call.args[1:], ("asset_name",))
             self.assertEqual(call.kwargs, {"unique": True})
 
     async def test_empty_registry(self) -> None:
@@ -76,13 +81,15 @@ class StartupTests(unittest.IsolatedAsyncioTestCase):
                 "INSERT INTO dbs (sheurl, dbtoken) VALUES (?, ?)",
                 ("https://example.com", "example_db"),
             )
-        self.indexes.side_effect = OperationFailure("Existing duplicate names")
-        with patch.object(self.client, "close", wraps=self.client.close) as close:
-            with self.assertRaises(OperationFailure):
-                async with app.router.lifespan_context(app):
-                    self.fail("Startup accepted an index creation failure")
-            close.assert_called_once()
-        self.assertEqual(app.state.dbs, {})
+        for preceding_indexes in (0, 1):
+            with self.subTest(preceding_indexes=preceding_indexes):
+                self.indexes.side_effect = [None] * preceding_indexes + [OperationFailure("Existing duplicate names")]
+                with patch.object(self.client, "close", wraps=self.client.close) as close:
+                    with self.assertRaises(OperationFailure):
+                        async with app.router.lifespan_context(app):
+                            self.fail("Startup accepted an index creation failure")
+                    close.assert_called_once()
+                self.assertEqual(app.state.dbs, {})
 
     async def test_missing_registry_is_not_created(self) -> None:
         missing_path = self.sqlite_path.with_name("missing.sqlite3")

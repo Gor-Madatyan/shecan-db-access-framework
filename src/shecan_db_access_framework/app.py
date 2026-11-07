@@ -10,6 +10,7 @@ from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
 from shecan_db_access_framework.assets import router as assets_router
+from shecan_db_access_framework.products import router as products_router
 
 
 @asynccontextmanager
@@ -33,6 +34,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         try:
             for dbtoken in {entry["dbtoken"] for entry in app.state.dbs.values()}:
                 client[dbtoken]["assets"].create_index("asset_name", unique=True)
+                client[dbtoken]["products"].create_index("product_name", unique=True)
             yield
         finally:
             app.state.dbs.clear()
@@ -40,6 +42,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="Shecan DB Access Framework", version="0.1.0", lifespan=lifespan)
 app.include_router(assets_router)
+app.include_router(products_router)
 
 
 @app.exception_handler(DuplicateKeyError)
